@@ -258,7 +258,20 @@ Options:
 ## Environment Variables
 
 - `SKILLHUB_TOKEN` - API token for authentication (alternative to `login`)
-- `SKILLHUB_API_URL` - Custom API URL (default: http://localhost:3000)
+- `SKILLHUB_API_URL` - Custom API URL (default: `https://api.skillhub.com`)
+
+### Setting Environment Variables
+
+```bash
+# Set for a single command
+SKILLHUB_API_URL=https://your-api-url.com skillhub search <skill-name>
+
+# Set for current terminal session
+export SKILLHUB_API_URL=https://your-api-url.com
+
+# Set permanently (add to ~/.zshrc or ~/.bashrc)
+export SKILLHUB_API_URL=https://your-api-url.com
+```
 
 ## Configuration
 
