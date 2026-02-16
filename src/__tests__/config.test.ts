@@ -3,6 +3,7 @@ import {
   addInstalledSkill,
   removeInstalledSkill,
   getInstalledSkill,
+  updateInstalledSkill,
 } from '../config/manager.js';
 import type { InstalledSkill } from '../api/types.js';
 
@@ -69,6 +70,22 @@ describe('Config Manager', () => {
     it('should return undefined for unknown slug', () => {
       const skill = getInstalledSkill('unknown');
       expect(skill).toBeUndefined();
+    });
+  });
+
+  describe('updateInstalledSkill', () => {
+    it('should update existing skill', () => {
+      addInstalledSkill(mockSkill);
+      const result = updateInstalledSkill('test-skill', { version: '3.0.0', name: 'Updated Skill' });
+      expect(result).toBe(true);
+      const skill = getInstalledSkill('test-skill');
+      expect(skill?.version).toBe('3.0.0');
+      expect(skill?.name).toBe('Updated Skill');
+    });
+
+    it('should return false if skill not found', () => {
+      const result = updateInstalledSkill('non-existent', { version: '2.0.0' });
+      expect(result).toBe(false);
     });
   });
 });

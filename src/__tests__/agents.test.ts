@@ -4,6 +4,10 @@ import {
   getAgent,
   getAllAgents,
   getAgentIds,
+  detectInstalledAgents,
+  getCentralSkillsDir,
+  getSkillCanonicalPath,
+  getAgentSkillsDir,
 } from '../agents/types.js';
 import type { Agent } from '../agents/types.js';
 
@@ -15,6 +19,9 @@ describe('Agent Registry', () => {
       { type: 'project', path: '.test', filename: 'config.md' },
     ],
     format: 'markdown',
+    skillsDir: '.test/skills',
+    globalSkillsDir: '/home/user/.test/skills',
+    detectInstalled: jest.fn(),
     install: jest.fn(),
     uninstall: jest.fn(),
     isInstalled: jest.fn(),
@@ -67,6 +74,96 @@ describe('Agent Registry', () => {
     it('should return all agent ids', () => {
       registerAgent(mockAgent);
       expect(getAgentIds()).toContain('test-agent');
+    });
+  });
+
+  describe('detectInstalledAgents', () => {
+    it('should return detected agents', async () => {
+      const detectedAgent: Agent = {
+        ...mockAgent,
+        id: 'detected-agent',
+        detectInstalled: jest.fn().mockResolvedValue(true),
+      };
+      const notDetectedAgent: Agent = {
+        ...mockAgent,
+        id: 'not-detected-agent',
+        detectInstalled: jest.fn().mockResolvedValue(false),
+      };
+
+      registerAgent(detectedAgent);
+      registerAgent(notDetectedAgent);
+
+      const result = await detectInstalledAgents();
+      expect(result).toContain('detected-agent');
+      expect(result).not.toContain('not-detected-agent');
+    });
+
+    it('should handle detection errors', async () => {
+      const errorAgent: Agent = {
+        ...mockAgent,
+        id: 'error-agent',
+        detectInstalled: jest.fn().mockRejectedValue(new Error('Detection failed')),
+      };
+
+      registerAgent(errorAgent);
+
+      const result = await detectInstalledAgents();
+      expect(result).not.toContain('error-agent');
+    });
+  });
+});
+
+describe('Skills Directory Helpers', () => {
+  describe('getCentralSkillsDir', () => {
+    it('should return global skills dir when global is true', () => {
+      const result = getCentralSkillsDir(true);
+      expect(result).toContain('.skillhub');
+      expect(result).toContain('skills');
+    });
+
+    it('should return project skills dir when global is false', () => {
+      const cwd = '/project/path';
+      const result = getCentralSkillsDir(false, cwd);
+      expect(result).toBe('/project/path/.skillhub/skills');
+    });
+
+    it('should use process.cwd() when cwd not provided', () => {
+      const result = getCentralSkillsDir(false);
+      expect(result).toContain('.skillhub/skills');
+    });
+  });
+
+  describe('getSkillCanonicalPath', () => {
+    it('should return path with skill slug', () => {
+      const result = getSkillCanonicalPath('my-skill', true);
+      expect(result).toContain('.skillhub');
+      expect(result).toContain('skills');
+      expect(result).toContain('my-skill');
+    });
+  });
+
+  describe('getAgentSkillsDir', () => {
+    const testAgent: Agent = {
+      name: 'Test',
+      id: 'test',
+      configPaths: [],
+      format: 'markdown',
+      skillsDir: '.test/skills',
+      globalSkillsDir: '/home/user/.test/skills',
+      detectInstalled: jest.fn(),
+      install: jest.fn(),
+      uninstall: jest.fn(),
+      isInstalled: jest.fn(),
+    };
+
+    it('should return global skills dir for global mode', () => {
+      const result = getAgentSkillsDir(testAgent, true);
+      expect(result).toBe('/home/user/.test/skills');
+    });
+
+    it('should return project skills dir for local mode', () => {
+      const result = getAgentSkillsDir(testAgent, false, '/my/project');
+      expect(result).toBe('/my/project/.test/skills');
     });
   });
 });
