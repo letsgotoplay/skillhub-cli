@@ -1,13 +1,13 @@
-# @skillhub/cli
+# @letsgotoplay/skillhub-cli
 
 CLI tool for SkillHub enterprise skill marketplace. Search, install, and manage AI Coding Tool skills across multiple platforms.
 
 ## Installation
 
 ```bash
-npm install -g @skillhub/cli
+npm install -g @letsgotoplay/skillhub-cli
 # or
-pnpm add -g @skillhub/cli
+pnpm add -g @letsgotoplay/skillhub-cli
 ```
 
 ## Quick Start

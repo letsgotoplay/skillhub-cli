@@ -63,6 +63,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/skillhub/cli.git"
-  }
+    "url": "https://github.com/letsgotoplay/skillhub-cli.git"
+  },
+  "bugs": {
+    "url": "https://github.com/letsgotoplay/skillhub-cli/issues"
+  },
+  "homepage": "https://github.com/letsgotoplay/skillhub-cli#readme"
 }
