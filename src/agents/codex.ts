@@ -1,8 +1,10 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
+const codexHome = process.env.CODEX_HOME?.trim() || path.join(home, '.codex');
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.', filename: 'CODEX.md' },
@@ -30,6 +32,14 @@ export const codexAgent: Agent = {
   id: 'codex',
   configPaths,
   format: 'markdown',
+
+  // Symlink-based properties
+  skillsDir: '.codex/skills',
+  globalSkillsDir: path.join(codexHome, 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(codexHome) || fs.pathExists('/etc/codex');
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

@@ -4,6 +4,7 @@ export interface Skill {
   id: string;
   name: string;
   slug: string;
+  fullSlug?: string;  // GitHub-style: alice/pdf-reader
   description: string | null;
   category: Category;
   tags: string[];
@@ -16,6 +17,7 @@ export interface Skill {
     id: string;
     name: string | null;
     email: string;
+    emailPrefix?: string;  // For fullSlug construction
   };
   team?: {
     id: string;

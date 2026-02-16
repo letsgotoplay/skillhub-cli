@@ -1,5 +1,5 @@
 {
-  "name": "@skillhub/cli",
+  "name": "@letsgotoplay/skillhub-cli",
   "version": "1.0.0",
   "description": "CLI tool for SkillHub enterprise skill marketplace",
   "type": "module",
@@ -11,6 +11,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts --sourcemap",
     "dev": "tsup src/index.ts --format esm --watch",

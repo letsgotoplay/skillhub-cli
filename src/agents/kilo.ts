@@ -2,8 +2,9 @@ import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
 import yaml from 'js-yaml';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.kilo', filename: 'config.yaml' },
@@ -27,6 +28,14 @@ export const kiloAgent: Agent = {
   id: 'kilo',
   configPaths,
   format: 'yaml',
+
+  // Symlink-based properties
+  skillsDir: '.kilocode/skills',
+  globalSkillsDir: path.join(home, '.kilocode', 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(path.join(home, '.kilocode'));
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

@@ -1,8 +1,9 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.cursor', filename: 'rules' },
@@ -30,6 +31,14 @@ export const cursorAgent: Agent = {
   id: 'cursor',
   configPaths,
   format: 'markdown',
+
+  // Symlink-based properties
+  skillsDir: '.cursor/skills',
+  globalSkillsDir: path.join(home, '.cursor', 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(path.join(home, '.cursor'));
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

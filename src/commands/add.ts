@@ -1,10 +1,16 @@
 import chalk from 'chalk';
 import ora from 'ora';
+import * as path from 'path';
+import * as fs from 'fs-extra';
+import JSZip from 'jszip';
 import { confirm, checkbox } from '@inquirer/prompts';
 import { apiRequest, isAuthenticated, downloadFile, getConfig } from '../api/client.js';
 import { addInstalledSkill, getInstalledSkill } from '../config/manager.js';
-import { getAllAgents, getAgent } from '../agents/index.js';
+import { getAllAgents, getAgent, detectInstalledAgents } from '../agents/index.js';
+import { createSymlinkToAgent } from '../lib/installer.js';
+import { getCentralSkillsDir, getAgentSkillsDir } from '../agents/types.js';
 import type { SkillListResponse, InstalledSkill } from '../api/types.js';
+import type { InstalledSkill as LocalInstalledSkill } from '../agents/types.js';
 
 interface AddOptions {
   agents?: string[];
@@ -13,16 +19,48 @@ interface AddOptions {
   all?: boolean;
 }
 
-async function downloadSkill(skillId: string, version?: string): Promise<{ buffer: Buffer; version: string }> {
+async function downloadAndExtractSkill(
+  skillIdentifier: string,  // Can be fullSlug (alice/pdf-reader) or uuid
+  targetDir: string,
+  version?: string
+): Promise<{ version: string }> {
   const cfg = getConfig();
-  let url = `${cfg.apiUrl}/api/skills/${skillId}/download?type=full`;
+  // New API route: /api/download/{fullSlug or uuid}
+  let url = `${cfg.apiUrl}/api/download/${encodeURIComponent(skillIdentifier)}`;
   if (version) {
-    url += `&version=${version}`;
+    url += `?version=${version}`;
   }
 
+  // Download zip buffer
   const buffer = await downloadFile(url);
 
-  return { buffer, version: version || 'latest' };
+  // Extract zip to target directory
+  const zip = await JSZip.loadAsync(buffer);
+
+  // Clear target directory
+  await fs.emptyDir(targetDir);
+
+  // Extract all files
+  const extractPromises: Promise<void>[] = [];
+
+  zip.forEach((relativePath, zipEntry) => {
+    if (zipEntry.dir) {
+      extractPromises.push(
+        fs.ensureDir(path.join(targetDir, relativePath))
+      );
+    } else {
+      extractPromises.push(
+        zipEntry.async('nodebuffer').then(async (content) => {
+          const fullPath = path.join(targetDir, relativePath);
+          await fs.outputFile(fullPath, content);
+        })
+      );
+    }
+  });
+
+  await Promise.all(extractPromises);
+
+  return { version: version || 'latest' };
 }
 
 export async function add(skillSlug: string, options: AddOptions = {}): Promise<void> {
@@ -49,12 +87,20 @@ export async function add(skillSlug: string, options: AddOptions = {}): Promise<
   }
 
   const skill = response.data.skills[0];
-  spinner.succeed(`Found skill: ${skill.name}`);
+
+  // Get the full identifier (fullSlug preferred, fallback to id)
+  const skillIdentifier = skill.fullSlug || skill.id;
+  const displaySlug = skill.fullSlug || skill.slug;
+  // Use skill.name as folder name (must match SKILL.md name field for coding tools to load it)
+  const skillName = skill.name;
+  const dirName = skillName;
+
+  spinner.succeed(`Found skill: ${skill.name} (${displaySlug})`);
 
   // Check if already installed
-  const existing = getInstalledSkill(skill.slug);
+  const existing = getInstalledSkill(displaySlug);
   if (existing) {
-    console.log(chalk.yellow(`Skill "${skill.slug}" is already installed.`));
+    console.log(chalk.yellow(`Skill "${displaySlug}" is already installed.`));
     const shouldUpdate = await confirm({
       message: 'Do you want to reinstall/update it?',
       default: false,
@@ -64,20 +110,33 @@ export async function add(skillSlug: string, options: AddOptions = {}): Promise<
     }
   }
 
+  // Detect installed agents on the system
+  const detectedAgents = await detectInstalledAgents();
+
   // Determine which agents to install to
   let targetAgents = options.agents || [];
 
   if (options.all) {
     targetAgents = getAllAgents().map((a) => a.id);
   } else if (targetAgents.length === 0) {
-    const agentChoices = getAllAgents().map((agent) => ({
-      name: `${agent.name} (${agent.id})`,
+    // Filter to only show detected agents, or all if none detected
+    const availableAgents = detectedAgents.length > 0
+      ? getAllAgents().filter((a) => detectedAgents.includes(a.id))
+      : getAllAgents();
+
+    const agentChoices = availableAgents.map((agent) => ({
+      name: `${agent.name} (${agent.id})${detectedAgents.includes(agent.id) ? ' [detected]' : ''}`,
       value: agent.id,
       checked: agent.id === 'claude-code',
     }));
 
+    // Add a note if some agents were filtered
+    if (detectedAgents.length > 0 && detectedAgents.length < getAllAgents().length) {
+      console.log(chalk.gray(`Detected ${detectedAgents.length} AI Coding Tools on your system.`));
+    }
+
     targetAgents = await checkbox({
-      message: 'Select agents to install to:',
+      message: 'Select AI Coding Tools to install to:',
       choices: agentChoices,
       required: true,
     });
@@ -86,56 +145,62 @@ export async function add(skillSlug: string, options: AddOptions = {}): Promise<
   // Validate agents
   for (const agentId of targetAgents) {
     if (!getAgent(agentId)) {
-      console.log(chalk.red(`Unknown agent: ${agentId}`));
-      console.log(chalk.gray(`Available agents: ${getAllAgents().map((a) => a.id).join(', ')}`));
+      console.log(chalk.red(`Unknown AI Coding Tool: ${agentId}`));
+      console.log(chalk.gray(`Available tools: ${getAllAgents().map((a) => a.id).join(', ')}`));
       process.exit(1);
     }
   }
 
-  // Download skill
-  spinner.start('Downloading skill package...');
-  const downloadResult = await downloadSkill(skill.id, options.version);
-  spinner.succeed('Skill package downloaded');
+  // Download and extract to central location
+  const isGlobal = options.global ?? false;
+  const centralDir = getCentralSkillsDir(isGlobal);
+  const skillDir = path.join(centralDir, dirName);
 
-  // Install to each agent
+  spinner.start('Downloading and extracting skill package...');
+  const downloadResult = await downloadAndExtractSkill(skillIdentifier, skillDir, options.version);
+  spinner.succeed('Skill package downloaded and extracted');
+
+  // Create symlinks to each agent's skills directory
   const installedPaths: Record<string, string> = {};
-  const installOptions = { global: options.global };
 
   for (const agentId of targetAgents) {
     const agent = getAgent(agentId);
     if (!agent) continue;
 
-    spinner.start(`Installing to ${agent.name}...`);
-
-    const installedSkill: InstalledSkill = {
-      name: skill.name,
-      slug: skill.slug,
-      version: skill.versions?.[0]?.version || downloadResult.version,
-      skillId: skill.id,
-      installedAt: new Date().toISOString(),
-      installedTo: [agentId],
-      paths: {},
-    };
+    spinner.start(`Linking to ${agent.name}...`);
 
     try {
-      const configPath = await agent.install(installedSkill, installOptions);
-      installedPaths[agentId] = configPath;
-      spinner.succeed(`Installed to ${agent.name}`);
+      const agentSkillsDir = getAgentSkillsDir(agent, isGlobal);
+      const agentSkillPath = path.join(agentSkillsDir, dirName);
+      const result = await createSymlinkToAgent(skillDir, agentSkillPath);
+
+      if (result.success) {
+        installedPaths[agentId] = agentSkillPath;
+        if (result.symlinkFailed) {
+          spinner.succeed(`Installed to ${agent.name} (copied)`);
+        } else {
+          spinner.succeed(`Linked to ${agent.name}`);
+        }
+      } else {
+        spinner.fail(`Failed to link to ${agent.name}`);
+        console.log(chalk.red(result.error || 'Unknown error'));
+      }
     } catch (err) {
-      spinner.fail(`Failed to install to ${agent.name}`);
+      spinner.fail(`Failed to link to ${agent.name}`);
       console.log(chalk.red(err instanceof Error ? err.message : 'Unknown error'));
     }
   }
 
   // Update installed skills manifest
-  const finalInstalledSkill: InstalledSkill = {
+  const finalInstalledSkill: InstalledSkill & LocalInstalledSkill = {
     name: skill.name,
-    slug: skill.slug,
+    slug: displaySlug,  // Use fullSlug for unique identification
     version: skill.versions?.[0]?.version || downloadResult.version,
     skillId: skill.id,
     installedAt: new Date().toISOString(),
     installedTo: targetAgents,
     paths: installedPaths,
+    canonicalPath: skillDir,
   };
 
   addInstalledSkill(finalInstalledSkill);
@@ -143,8 +208,12 @@ export async function add(skillSlug: string, options: AddOptions = {}): Promise<
   console.log();
   console.log(chalk.green('Skill installed successfully!'));
   console.log();
-  console.log(chalk.gray('Installed to:'));
-  for (const [agentId, configPath] of Object.entries(installedPaths)) {
-    console.log(chalk.gray(`  ${agentId}: ${configPath}`));
+  console.log(chalk.gray('Central location:'));
+  console.log(chalk.gray(`  ${skillDir}`));
+  console.log();
+  console.log(chalk.gray('Linked to:'));
+  for (const [agentId, agentPath] of Object.entries(installedPaths)) {
+    const agent = getAgent(agentId);
+    console.log(chalk.gray(`  ${agent?.name || agentId}: ${agentPath}`));
   }
 }

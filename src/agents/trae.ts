@@ -1,8 +1,9 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.trae', filename: 'instructions.md' },
@@ -30,6 +31,14 @@ export const traeAgent: Agent = {
   id: 'trae',
   configPaths,
   format: 'markdown',
+
+  // Symlink-based properties
+  skillsDir: '.trae/skills',
+  globalSkillsDir: path.join(home, '.trae', 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(path.join(home, '.trae'));
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

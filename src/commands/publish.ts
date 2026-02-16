@@ -5,13 +5,13 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { apiClient, isAuthenticated } from '../api/client.js';
 
-interface UploadOptions {
+interface PublishOptions {
   changelog?: string;
 }
 
-export async function upload(filePath: string, options: UploadOptions): Promise<void> {
+export async function publish(skillId: string, filePath: string, options: PublishOptions): Promise<void> {
   if (!isAuthenticated()) {
-    console.log(chalk.red('You must be logged in to upload skills.'));
+    console.log(chalk.red('You must be logged in to publish skills.'));
     console.log(chalk.gray('Run `skillhub login` first.'));
     process.exit(1);
   }
@@ -49,13 +49,13 @@ export async function upload(filePath: string, options: UploadOptions): Promise<
     }
 
     // Upload to API
-    spinner.text = 'Uploading to SkillHub...';
-    const response = await apiClient.uploadSkill(formData);
+    spinner.text = `Publishing new version for ${skillId}...`;
+    const response = await apiClient.uploadSkillVersion(skillId, formData);
 
-    spinner.succeed('Skill uploaded successfully!');
+    spinner.succeed('New version published successfully!');
 
     console.log();
-    console.log(chalk.green('Skill Details:'));
+    console.log(chalk.green('Version Details:'));
     console.log(chalk.gray('─'.repeat(40)));
     console.log(`  ${chalk.cyan('Skill ID:')} ${response.skillId}`);
     console.log(`  ${chalk.cyan('Version ID:')} ${response.versionId}`);
@@ -74,7 +74,7 @@ export async function upload(filePath: string, options: UploadOptions): Promise<
     console.log(chalk.gray(`View at: ${apiClient.getApiUrl()}/skills/${response.fullSlug}`));
 
   } catch (error) {
-    spinner.fail('Upload failed');
+    spinner.fail('Publish failed');
     if (error instanceof Error) {
       console.log(chalk.red(error.message));
     }

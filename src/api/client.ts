@@ -2,6 +2,10 @@ import { request } from 'undici';
 import Conf from 'conf';
 import chalk from 'chalk';
 
+// CLI version for User-Agent header
+const CLI_VERSION = '1.0.0';
+const USER_AGENT = `SkillHub-CLI/${CLI_VERSION}`;
+
 export interface SkillHubConfig {
   apiUrl: string;
   token?: string;
@@ -31,7 +35,14 @@ const config = new Conf<{ config: SkillHubConfig }>({
 });
 
 export function getConfig(): SkillHubConfig {
-  return config.get('config');
+  const fileConfig = config.get('config');
+
+  // Environment variables take precedence over file config
+  return {
+    ...fileConfig,
+    apiUrl: process.env.SKILLHUB_API_URL || fileConfig.apiUrl,
+    token: process.env.SKILLHUB_TOKEN || fileConfig.token,
+  };
 }
 
 export function setConfig(newConfig: Partial<SkillHubConfig>): void {
@@ -65,6 +76,7 @@ export async function apiRequest<T>(
 
   const requestHeaders: Record<string, string> = {
     'Content-Type': 'application/json',
+    'User-Agent': USER_AGENT,
     ...headers,
   };
 
@@ -126,11 +138,13 @@ export async function downloadFile(url: string): Promise<Buffer> {
 
 // Upload response type
 export interface UploadResponse {
-  id: string;
-  name: string;
-  version: string;
-  status: string;
-  securityScanStatus?: string;
+  success: boolean;
+  skillId: string;
+  versionId: string;
+  slug: string;
+  fullSlug: string;
+  warnings?: string[];
+  specValidationPassed?: boolean;
 }
 
 // Skill for updates/check
@@ -221,14 +235,18 @@ class ApiClient {
     const cfg = this.getConfig();
     const url = `${cfg.apiUrl}/api/skills`;
 
-    const response = await request(url, {
+    // Use native fetch for FormData compatibility
+    const response = await fetch(url, {
       method: 'POST',
-      headers: cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {},
+      headers: {
+        'User-Agent': USER_AGENT,
+        ...(cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {}),
+      },
       body: formData,
     });
 
-    const responseBody = await response.body.text();
-    let data: UploadResponse;
+    const responseBody = await response.text();
+    let data: UploadResponse | { success: false; error: string };
 
     try {
       data = JSON.parse(responseBody);
@@ -236,11 +254,55 @@ class ApiClient {
       throw new Error('Invalid response from server');
     }
 
-    if (response.statusCode >= 400) {
+    // Check for error in response body
+    if ('success' in data && data.success === false) {
+      throw new Error((data as { success: false; error: string }).error || 'Upload failed');
+    }
+
+    if (!response.ok) {
       throw new Error((data as unknown as ApiError).error || 'Upload failed');
     }
 
-    return data;
+    return data as UploadResponse;
+  }
+
+  /**
+   * Upload a new version of an existing skill
+   */
+  public async uploadSkillVersion(
+    skillId: string,
+    formData: FormData
+  ): Promise<UploadResponse> {
+    const cfg = this.getConfig();
+    const url = `${cfg.apiUrl}/api/skills/${skillId}/versions`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'User-Agent': USER_AGENT,
+        ...(cfg.token ? { Authorization: `Bearer ${cfg.token}` } : {}),
+      },
+      body: formData,
+    });
+
+    const responseBody = await response.text();
+    let data: UploadResponse | { success: false; error: string };
+
+    try {
+      data = JSON.parse(responseBody);
+    } catch {
+      throw new Error('Invalid response from server');
+    }
+
+    if ('success' in data && data.success === false) {
+      throw new Error((data as { success: false; error: string }).error || 'Version upload failed');
+    }
+
+    if (!response.ok) {
+      throw new Error((data as unknown as ApiError).error || 'Version upload failed');
+    }
+
+    return data as UploadResponse;
   }
 
   public async checkVersion(): Promise<{ user: { email: string }; marketplace: { name: string } }> {

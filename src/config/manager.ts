@@ -49,3 +49,16 @@ export function getInstalledSkill(slug: string): InstalledSkill | undefined {
   const skills = getInstalledSkills();
   return skills.find((s) => s.slug === slug);
 }
+
+export function updateInstalledSkill(slug: string, updates: Partial<InstalledSkill>): boolean {
+  const skills = getInstalledSkills();
+  const index = skills.findIndex((s) => s.slug === slug);
+
+  if (index >= 0) {
+    skills[index] = { ...skills[index], ...updates };
+    installedConfig.set('skills', skills);
+    return true;
+  }
+
+  return false;
+}

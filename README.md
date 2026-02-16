@@ -1,6 +1,6 @@
 # @skillhub/cli
 
-CLI tool for SkillHub enterprise skill marketplace. Search, install, and manage AI agent skills across multiple platforms.
+CLI tool for SkillHub enterprise skill marketplace. Search, install, and manage AI Coding Tool skills across multiple platforms.
 
 ## Installation
 
@@ -19,7 +19,7 @@ skillhub login
 # Search for skills
 skillhub search "pdf"
 
-# Install a skill to your agents
+# Install a skill to your AI Coding Tools
 skillhub add my-skill -a claude-code,cursor
 
 # List installed skills
@@ -88,6 +88,18 @@ Options:
 - `-c, --category <category>` - Filter by category
 - `-j, --json` - Output as JSON
 
+#### `skillhub find [query]`
+
+Interactively search and install skills.
+
+```bash
+# Interactive search
+skillhub find
+
+# Search with initial query
+skillhub find pdf
+```
+
 #### `skillhub info <skill>`
 
 Get detailed information about a skill.
@@ -106,13 +118,13 @@ Options:
 
 #### `skillhub add <skill>`
 
-Install a skill to your AI agents.
+Install a skill to your AI Coding Tools.
 
 ```bash
-# Install to default agents (claude-code, cursor)
+# Install to default tools (claude-code, cursor)
 skillhub add my-skill
 
-# Install to specific agents
+# Install to specific tools
 skillhub add my-skill -a claude-code,cursor,copilot
 
 # Install globally (to user home directory)
@@ -121,38 +133,38 @@ skillhub add my-skill --global
 # Install specific version
 skillhub add my-skill --version 1.2.0
 
-# Install to all available agents
+# Install to all available tools
 skillhub add my-skill --all
 ```
 
 Options:
-- `-a, --agents <agents>` - Target agents (comma-separated)
+- `-a, --agents <agents>` - Target AI Coding Tools (comma-separated)
 - `-g, --global` - Install globally to user directory
 - `-v, --version <version>` - Specific version to install
-- `--all` - Install to all available agents
+- `--all` - Install to all available tools
 
 #### `skillhub remove [skill]`
 
 Remove an installed skill.
 
 ```bash
-# Remove from all installed agents
+# Remove from all installed tools
 skillhub remove my-skill
 
-# Remove from specific agents
+# Remove from specific tools
 skillhub remove my-skill -a claude-code
 
 # Remove from global installation
 skillhub remove my-skill --global
 
-# Remove from all agents
+# Remove from all tools
 skillhub remove my-skill --all
 ```
 
 Options:
 - `-g, --global` - Remove from global scope
-- `-a, --agents <agents>` - Remove from specific agents
-- `--all` - Remove from all agents
+- `-a, --agents <agents>` - Remove from specific AI Coding Tools
+- `--all` - Remove from all tools
 
 #### `skillhub list`
 
@@ -161,7 +173,7 @@ List installed skills.
 ```bash
 skillhub list
 
-# Filter by agent
+# Filter by tool
 skillhub list --agent claude-code
 
 # JSON output
@@ -170,7 +182,7 @@ skillhub list --json
 
 Options:
 - `-j, --json` - Output as JSON
-- `-a, --agent <agent>` - Filter by agent
+- `-a, --agent <agent>` - Filter by AI Coding Tool
 
 #### `skillhub upload <file>`
 
@@ -215,7 +227,7 @@ skillhub update
 # Update specific skill
 skillhub update my-skill
 
-# Update for specific agents
+# Update for specific tools
 skillhub update my-skill -a claude-code,cursor
 
 # Update global installation
@@ -224,12 +236,12 @@ skillhub update my-skill --global
 
 Options:
 - `-g, --global` - Update global installation
-- `-a, --agents <agents>` - Update for specific agents
-- `--all` - Update for all agents
+- `-a, --agents <agents>` - Update for specific AI Coding Tools
+- `--all` - Update for all tools
 
-## Supported Agents
+## Supported AI Coding Tools
 
-| Agent | ID | Config Path | Format |
+| Tool | ID | Config Path | Format |
 |-------|-----|-------------|--------|
 | Claude Code | `claude-code` | `.claude/CLAUDE.md` | Markdown |
 | Cursor | `cursor` | `.cursor/rules` | Markdown |
@@ -257,7 +269,7 @@ Configuration files are stored in `~/.skillhub/`:
 
 ## Examples
 
-### Install a skill to multiple agents
+### Install a skill to multiple tools
 
 ```bash
 skillhub add pdf-processor -a claude-code,cursor,copilot

@@ -1,8 +1,11 @@
 import chalk from 'chalk';
 import ora from 'ora';
+import * as fs from 'fs-extra';
 import { confirm, checkbox } from '@inquirer/prompts';
-import { removeInstalledSkill, getInstalledSkill } from '../config/manager.js';
+import { removeInstalledSkill, getInstalledSkill, updateInstalledSkill } from '../config/manager.js';
 import { getAgent } from '../agents/index.js';
+import { uninstallSkillForAgent } from '../lib/installer.js';
+import { getCentralSkillsDir } from '../agents/types.js';
 
 interface RemoveOptions {
   global?: boolean;
@@ -18,6 +21,9 @@ export async function remove(skillSlug: string, options: RemoveOptions = {}): Pr
     console.log(chalk.yellow(`Skill "${skillSlug}" is not installed.`));
     return;
   }
+
+  // Get the skill name (used as directory name)
+  const skillName = installed.name;
 
   // Determine which agents to remove from
   let targetAgents = options.agents || [];
@@ -38,14 +44,14 @@ export async function remove(skillSlug: string, options: RemoveOptions = {}): Pr
       });
 
       targetAgents = await checkbox({
-        message: 'Select agents to remove from:',
+        message: 'Select AI Coding Tools to remove from:',
         choices: agentChoices,
       });
     }
   }
 
   if (targetAgents.length === 0) {
-    console.log(chalk.yellow('No agents selected.'));
+    console.log(chalk.yellow('No tools selected.'));
     return;
   }
 
@@ -66,14 +72,14 @@ export async function remove(skillSlug: string, options: RemoveOptions = {}): Pr
   for (const agentId of targetAgents) {
     const agent = getAgent(agentId);
     if (!agent) {
-      console.log(chalk.yellow(`Unknown agent: ${agentId}`));
+      console.log(chalk.yellow(`Unknown AI Coding Tool: ${agentId}`));
       continue;
     }
 
     const spinner = ora(`Removing from ${agent.name}...`).start();
 
     try {
-      const removed = await agent.uninstall(skillSlug, installOptions);
+      const removed = await uninstallSkillForAgent(skillName, agentId, installOptions);
       if (removed) {
         spinner.succeed(`Removed from ${agent.name}`);
       } else {
@@ -90,11 +96,24 @@ export async function remove(skillSlug: string, options: RemoveOptions = {}): Pr
 
   if (remainingAgents.length === 0) {
     removeInstalledSkill(skillSlug);
+
+    // Also remove from central location
+    const isGlobal = options.global ?? false;
+    const centralDir = getCentralSkillsDir(isGlobal);
+    const centralSkillPath = centralDir + '/' + skillName;
+
+    try {
+      await fs.remove(centralSkillPath);
+    } catch {
+      // Ignore errors
+    }
+
     console.log();
     console.log(chalk.green(`Skill "${skillSlug}" removed completely.`));
   } else {
+    updateInstalledSkill(skillSlug, { installedTo: remainingAgents });
     console.log();
-    console.log(chalk.green(`Skill "${skillSlug}" removed from selected agents.`));
+    console.log(chalk.green(`Skill "${skillSlug}" removed from selected tools.`));
     console.log(chalk.gray(`Still installed to: ${remainingAgents.join(', ')}`));
   }
 }

@@ -5,7 +5,7 @@ _skillhub_completion() {
     local cur prev words cword
     _init_completion || return
 
-    local commands="login logout whoami search info list add remove upload check update help"
+    local commands="login logout whoami search info find list add remove upload check update help"
     local options="--help --version -h -V"
 
     if [[ \${cword} -eq 1 ]]; then
@@ -61,9 +61,10 @@ _skillhub() {
         'whoami:Show current authenticated user'
         'search:Search for skills in the marketplace'
         'info:Get detailed information about a skill'
+        'find:Interactively search and install skills'
         'list:List installed skills'
         'ls:List installed skills (alias)'
-        'add:Install a skill to your agents'
+        'add:Install a skill to your AI Coding Tools'
         'remove:Remove an installed skill'
         'rm:Remove an installed skill (alias)'
         'upload:Upload a skill package to the marketplace'
@@ -92,18 +93,18 @@ _skillhub() {
             ;;
         list|ls)
             _arguments '--json[Output as JSON]' '-j[Output as JSON]' \\
-                       '--agent[Filter by agent]:agent:' '-a[Filter by agent]:agent:'
+                       '--agent[Filter by AI Coding Tool]:tool:' '-a[Filter by AI Coding Tool]:tool:'
             ;;
         add)
-            _arguments '--agents[Target agents]:agents:' '-a[Target agents]:agents:' \\
+            _arguments '--agents[Target AI Coding Tools]:tools:' '-a[Target AI Coding Tools]:tools:' \\
                        '--global[Install globally]' '-g[Install globally]' \\
                        '--version[Specific version]:version:' '-v[Specific version]:version:' \\
-                       '--all[Install to all agents]'
+                       '--all[Install to all tools]'
             ;;
         remove|rm)
             _arguments '--global[Remove from global]' '-g[Remove from global]' \\
-                       '--agents[Remove from agents]:agents:' '-a[Remove from agents]:agents:' \\
-                       '--all[Remove from all agents]'
+                       '--agents[Remove from AI Coding Tools]:tools:' '-a[Remove from AI Coding Tools]:tools:' \\
+                       '--all[Remove from all tools]'
             ;;
         upload)
             _arguments '--name[Skill name]:name:' '-n[Skill name]:name:' \\
@@ -115,8 +116,8 @@ _skillhub() {
             ;;
         update)
             _arguments '--global[Update global]' '-g[Update global]' \\
-                       '--agents[Update for agents]:agents:' '-a[Update for agents]:agents:' \\
-                       '--all[Update for all agents]'
+                       '--agents[Update for AI Coding Tools]:tools:' '-a[Update for AI Coding Tools]:tools:' \\
+                       '--all[Update for all tools]'
             ;;
     esac
 }
@@ -135,7 +136,7 @@ complete -c skillhub -n '__fish_use_subcommand' -a 'search' -d 'Search for skill
 complete -c skillhub -n '__fish_use_subcommand' -a 'info' -d 'Get detailed information about a skill'
 complete -c skillhub -n '__fish_use_subcommand' -a 'list' -d 'List installed skills'
 complete -c skillhub -n '__fish_use_subcommand' -a 'ls' -d 'List installed skills (alias)'
-complete -c skillhub -n '__fish_use_subcommand' -a 'add' -d 'Install a skill to your agents'
+complete -c skillhub -n '__fish_use_subcommand' -a 'add' -d 'Install a skill to your AI Coding Tools'
 complete -c skillhub -n '__fish_use_subcommand' -a 'remove' -d 'Remove an installed skill'
 complete -c skillhub -n '__fish_use_subcommand' -a 'rm' -d 'Remove an installed skill (alias)'
 complete -c skillhub -n '__fish_use_subcommand' -a 'upload' -d 'Upload a skill package to the marketplace'
@@ -162,24 +163,24 @@ complete -c skillhub -n '__fish_seen_subcommand_from info' -s j -d 'Output as JS
 # list options
 complete -c skillhub -n '__fish_seen_subcommand_from list ls' -l json -d 'Output as JSON'
 complete -c skillhub -n '__fish_seen_subcommand_from list ls' -s j -d 'Output as JSON'
-complete -c skillhub -n '__fish_seen_subcommand_from list ls' -l agent -d 'Filter by agent'
-complete -c skillhub -n '__fish_seen_subcommand_from list ls' -s a -d 'Filter by agent'
+complete -c skillhub -n '__fish_seen_subcommand_from list ls' -l agent -d 'Filter by AI Coding Tool'
+complete -c skillhub -n '__fish_seen_subcommand_from list ls' -s a -d 'Filter by AI Coding Tool'
 
 # add options
-complete -c skillhub -n '__fish_seen_subcommand_from add' -l agents -d 'Target agents'
-complete -c skillhub -n '__fish_seen_subcommand_from add' -s a -d 'Target agents'
+complete -c skillhub -n '__fish_seen_subcommand_from add' -l agents -d 'Target AI Coding Tools'
+complete -c skillhub -n '__fish_seen_subcommand_from add' -s a -d 'Target AI Coding Tools'
 complete -c skillhub -n '__fish_seen_subcommand_from add' -l global -d 'Install globally'
 complete -c skillhub -n '__fish_seen_subcommand_from add' -s g -d 'Install globally'
 complete -c skillhub -n '__fish_seen_subcommand_from add' -l version -d 'Specific version'
 complete -c skillhub -n '__fish_seen_subcommand_from add' -s v -d 'Specific version'
-complete -c skillhub -n '__fish_seen_subcommand_from add' -l all -d 'Install to all agents'
+complete -c skillhub -n '__fish_seen_subcommand_from add' -l all -d 'Install to all tools'
 
 # remove options
 complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -l global -d 'Remove from global'
 complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -s g -d 'Remove from global'
-complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -l agents -d 'Remove from agents'
-complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -s a -d 'Remove from agents'
-complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -l all -d 'Remove from all agents'
+complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -l agents -d 'Remove from AI Coding Tools'
+complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -s a -d 'Remove from AI Coding Tools'
+complete -c skillhub -n '__fish_seen_subcommand_from remove rm' -l all -d 'Remove from all tools'
 
 # upload options
 complete -c skillhub -n '__fish_seen_subcommand_from upload' -l name -d 'Skill name'
@@ -196,9 +197,9 @@ complete -c skillhub -n '__fish_seen_subcommand_from check' -s j -d 'Output as J
 # update options
 complete -c skillhub -n '__fish_seen_subcommand_from update' -l global -d 'Update global'
 complete -c skillhub -n '__fish_seen_subcommand_from update' -s g -d 'Update global'
-complete -c skillhub -n '__fish_seen_subcommand_from update' -l agents -d 'Update for agents'
-complete -c skillhub -n '__fish_seen_subcommand_from update' -s a -d 'Update for agents'
-complete -c skillhub -n '__fish_seen_subcommand_from update' -l all -d 'Update for all agents'
+complete -c skillhub -n '__fish_seen_subcommand_from update' -l agents -d 'Update for AI Coding Tools'
+complete -c skillhub -n '__fish_seen_subcommand_from update' -s a -d 'Update for AI Coding Tools'
+complete -c skillhub -n '__fish_seen_subcommand_from update' -l all -d 'Update for all tools'
 `;
 
 export async function completion(shell: string): Promise<void> {

@@ -1,8 +1,10 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
+const claudeHome = process.env.CLAUDE_CONFIG_DIR?.trim() || path.join(home, '.claude');
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.claude', filename: 'CLAUDE.md' },
@@ -11,7 +13,7 @@ const configPaths: ConfigPath[] = [
 
 function getConfigPath(options: InstallOptions): string {
   if (options.global) {
-    return path.join(os.homedir(), '.claude', 'CLAUDE.md');
+    return path.join(claudeHome, 'CLAUDE.md');
   }
   const projectRoot = options.projectRoot || process.cwd();
   return path.join(projectRoot, '.claude', 'CLAUDE.md');
@@ -30,6 +32,14 @@ export const claudeCodeAgent: Agent = {
   id: 'claude-code',
   configPaths,
   format: 'markdown',
+
+  // Symlink-based properties
+  skillsDir: '.claude/skills',
+  globalSkillsDir: path.join(claudeHome, 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(claudeHome);
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

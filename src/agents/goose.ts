@@ -1,8 +1,9 @@
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import * as os from 'os';
-import type { Agent, ConfigPath, InstallOptions } from './types.js';
-import type { InstalledSkill } from '../api/types.js';
+import type { Agent, ConfigPath, InstallOptions, InstalledSkill } from './types.js';
+
+const home = os.homedir();
 
 const configPaths: ConfigPath[] = [
   { type: 'project', path: '.goose', filename: 'hints' },
@@ -30,6 +31,14 @@ export const gooseAgent: Agent = {
   id: 'goose',
   configPaths,
   format: 'custom',
+
+  // Symlink-based properties
+  skillsDir: '.goose/skills',
+  globalSkillsDir: path.join(home, '.config', 'goose', 'skills'),
+
+  async detectInstalled(): Promise<boolean> {
+    return fs.pathExists(path.join(home, '.config', 'goose'));
+  },
 
   async install(skill: InstalledSkill, options: InstallOptions): Promise<string> {
     const configPath = getConfigPath(options);

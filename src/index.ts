@@ -8,9 +8,11 @@ import { list } from './commands/list.js';
 import { add } from './commands/add.js';
 import { remove } from './commands/remove.js';
 import { upload } from './commands/upload.js';
+import { publish } from './commands/publish.js';
 import { check } from './commands/check.js';
 import { update } from './commands/update.js';
 import { completion } from './commands/completion.js';
+import { find } from './commands/find.js';
 import { isAuthenticated } from './api/client.js';
 import { checkForUpdates, showUpdateNotification } from './lib/update-check.js';
 
@@ -80,13 +82,21 @@ program
     await info(skillSlug, options);
   });
 
+// Find command (interactive search)
+program
+  .command('find [query]')
+  .description('Interactively search and install skills')
+  .action(async (query?: string) => {
+    await find(query);
+  });
+
 // List command
 program
   .command('list')
   .alias('ls')
   .description('List installed skills')
   .option('-j, --json', 'Output as JSON')
-  .option('-a, --agent <agent>', 'Filter by agent')
+  .option('-a, --agent <agent>', 'Filter by AI Coding Tool')
   .action(async (options: { json?: boolean; agent?: string }) => {
     await list(options);
   });
@@ -94,11 +104,11 @@ program
 // Add command
 program
   .command('add <skill>')
-  .description('Install a skill to your agents')
-  .option('-a, --agents <agents>', 'Target agents (comma-separated)')
+  .description('Install a skill to your AI Coding Tools')
+  .option('-a, --agents <agents>', 'Target AI Coding Tools (comma-separated)')
   .option('-g, --global', 'Install globally to user directory')
   .option('-v, --version <version>', 'Specific version to install')
-  .option('--all', 'Install to all available agents')
+  .option('--all', 'Install to all available tools')
   .action(async (skillSlug: string, options: { agents?: string; global?: boolean; version?: string; all?: boolean }) => {
     const agents = options.agents ? options.agents.split(',') : undefined;
     await add(skillSlug, {
@@ -115,8 +125,8 @@ program
   .alias('rm')
   .description('Remove an installed skill')
   .option('-g, --global', 'Remove from global scope')
-  .option('-a, --agents <agents>', 'Remove from specific agents (comma-separated)')
-  .option('--all', 'Remove from all agents')
+  .option('-a, --agents <agents>', 'Remove from specific AI Coding Tools (comma-separated)')
+  .option('--all', 'Remove from all tools')
   .action(async (skillSlug: string | undefined, options: { global?: boolean; agents?: string; all?: boolean }) => {
     if (!skillSlug) {
       console.log(chalk.yellow('Please specify a skill to remove.'));
@@ -134,12 +144,19 @@ program
 // Upload command
 program
   .command('upload <file>')
-  .description('Upload a skill package to the marketplace')
-  .option('-n, --name <name>', 'Skill name')
-  .option('-v, --version <version>', 'Skill version')
-  .option('-d, --description <description>', 'Skill description')
-  .action(async (filePath: string, options: { name?: string; version?: string; description?: string }) => {
+  .description('Upload a new skill to the marketplace')
+  .option('--changelog <changelog>', 'Version changelog')
+  .action(async (filePath: string, options: { changelog?: string }) => {
     await upload(filePath, options);
+  });
+
+// Publish command (new version)
+program
+  .command('publish <skill-id> <file>')
+  .description('Publish a new version of an existing skill')
+  .option('--changelog <changelog>', 'Version changelog')
+  .action(async (skillId: string, filePath: string, options: { changelog?: string }) => {
+    await publish(skillId, filePath, options);
   });
 
 // Check command
@@ -156,8 +173,8 @@ program
   .command('update [skill]')
   .description('Update installed skills')
   .option('-g, --global', 'Update global installation')
-  .option('-a, --agents <agents>', 'Update for specific agents (comma-separated)')
-  .option('--all', 'Update for all agents')
+  .option('-a, --agents <agents>', 'Update for specific AI Coding Tools (comma-separated)')
+  .option('--all', 'Update for all tools')
   .action(async (skillSlug: string | undefined, options: { global?: boolean; agents?: string; all?: boolean }) => {
     const agents = options.agents ? options.agents.split(',') : undefined;
     await update(skillSlug, {
@@ -177,7 +194,7 @@ program
 
 // Add error handling for unauthenticated commands
 program.hook('preAction', async (_thisCommand, actionCommand) => {
-  const commandsRequiringAuth = ['add', 'remove', 'upload', 'check', 'update'];
+  const commandsRequiringAuth = ['add', 'remove', 'upload', 'check', 'update', 'find'];
   const commandName = actionCommand.name();
 
   if (commandsRequiringAuth.includes(commandName) && !isAuthenticated()) {

@@ -15,8 +15,8 @@ export async function list(options: { json?: boolean; agent?: string } = {}): Pr
   if (options.agent) {
     const agent = getAgent(options.agent);
     if (!agent) {
-      console.log(chalk.red(`Unknown agent: ${options.agent}`));
-      console.log(chalk.gray(`Available agents: ${getAllAgents().map((a) => a.id).join(', ')}`));
+      console.log(chalk.red(`Unknown AI Coding Tool: ${options.agent}`));
+      console.log(chalk.gray(`Available tools: ${getAllAgents().map((a) => a.id).join(', ')}`));
       process.exit(1);
     }
   }
@@ -29,7 +29,7 @@ export async function list(options: { json?: boolean; agent?: string } = {}): Pr
   console.log(chalk.blue(`\nInstalled Skills (${skills.length})\n`));
 
   const table = new Table({
-    head: [chalk.cyan('Name'), chalk.cyan('Version'), chalk.cyan('Agents'), chalk.cyan('Installed')],
+    head: [chalk.cyan('Name'), chalk.cyan('Version'), chalk.cyan('Tools'), chalk.cyan('Installed')],
     colWidths: [25, 10, 30, 15],
     wordWrap: true,
   });
