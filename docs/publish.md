@@ -11,24 +11,28 @@
 | `ci.yml` | push/PR 到 master/main | 自动运行 lint、build、test |
 | `publish.yml` | 发布 GitHub Release | 自动构建并发布到 npm |
 
-### 首次设置
+### 首次设置（Trusted Publishing）
 
-#### 1. 获取 npm Access Token
+项目使用 [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers/)，**无需配置 NPM_TOKEN**，更安全。
 
-1. 访问 https://www.npmjs.com/settings/你的用户名/tokens
-2. 点击 **Generate New Token** → **Classic Token**
-3. 选择 **Automation** 类型
-4. 复制生成的 token
+#### 前提条件
 
-#### 2. 在 GitHub 仓库添加 Secret
+- Node.js >= 22.14.0
+- npm CLI >= 11.5.1
 
-1. 进入 GitHub 仓库
-2. 点击 **Settings** → **Secrets and variables** → **Actions**
-3. 点击 **New repository secret**
+#### 在 npmjs.com 配置 Trusted Publisher
+
+1. 登录 https://www.npmjs.com
+2. 进入你的包页面 → **Settings** → **Trusted publishing**
+3. 点击 **GitHub Actions**
 4. 填写：
-   - **Name**: `NPM_TOKEN`
-   - **Value**: 粘贴你的 npm token
-5. 点击 **Add secret**
+   - **Organization or user**: `letsgotoplay`
+   - **Repository**: `skillhub-cli`
+   - **Workflow filename**: `publish.yml`
+   - **Environment name**: 留空
+5. 点击 **Add**
+
+配置后，GitHub Actions 会自动使用 OIDC 认证发布，无需任何 token。
 
 ### 发布新版本
 
